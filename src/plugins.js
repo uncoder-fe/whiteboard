@@ -17,7 +17,8 @@ const plugins = [
 			const [x, y] = points[0]
 			const endX = points[len - 1][0]
 			const endY = points[len - 1][1]
-			ctx.rect(x, y, endX - x, endY - y)
+			ctx.translate(x, y)
+			ctx.rect(0, 0, endX - x, endY - y)
 			ctx.stroke()
 			ctx.fill()
 		},
