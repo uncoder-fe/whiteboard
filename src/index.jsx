@@ -70,12 +70,11 @@ function Whiteboard(props) {
 	// 绘制动作组合并
 	const allPlugins = [...defaultPlugin, ...plugins]
 	// 检测是否命中精灵
-	const hitSprite = (historyList, ignoreList, x, y) => {
+	const hitSprite = (historyList, x, y) => {
 		const newList = [...historyList.reverse()]
 		let copySprite = null
 		for (let i = 0; i < newList.length; i++) {
-			const { id, leftTop, rightBottom } = newList[i]
-			if (ignoreList.find(item => item && item.id === id)) continue
+			const { leftTop, rightBottom } = newList[i]
 			if (
 				leftTop[0] < x &&
 				x < rightBottom[0] &&
@@ -140,8 +139,11 @@ function Whiteboard(props) {
 		}
 		if (currentAction.action === 'move') {
 			// 找出那个精灵
-			const sprite = hitSprite(historyList, moveList, x, y)
-			if (sprite) {
+			const sprite = hitSprite(historyList, x, y)
+			if (
+				sprite &&
+				!moveList.find(item => item && item.id === sprite.id)
+			) {
 				moveList[identifier] = sprite
 				const { action, points, style } = sprite
 				// 绘制背景
@@ -176,36 +178,35 @@ function Whiteboard(props) {
 					},
 				)
 				ctxList[identifier].restore()
-			} else if (currentAction.action === 'move') {
-				if (moveList[identifier]) {
-					const { action, points, style } = moveList[identifier]
-					// 更新坐标位置
-					const minX = fingerPointList[identifier][0][0]
-					const minY = fingerPointList[identifier][0][1]
-					const maxX =
-						fingerPointList[identifier][
-							fingerPointList[identifier].length - 1
-						][0]
-					const maxY =
-						fingerPointList[identifier][
-							fingerPointList[identifier].length - 1
-						][1]
-					const distanceX = maxX - minX
-					const distanceY = maxY - minY
-					const newPoints = points.map(item => {
-						const newX = item[0] + distanceX
-						const newY = item[1] + distanceY
-						return [newX, newY]
-					})
-					// 绘制
-					const plugin = allPlugins.find(
-						item => item.action === action,
-					)
-					ctxList[identifier].clearRect(0, 0, width, height)
-					ctxList[identifier].save()
-					plugin.draw(ctxList[identifier], newPoints, style)
-					ctxList[identifier].restore()
-				}
+			} else if (
+				currentAction.action === 'move' &&
+				moveList[identifier]
+			) {
+				const { action, points, style } = moveList[identifier]
+				// 更新坐标位置
+				const minX = fingerPointList[identifier][0][0]
+				const minY = fingerPointList[identifier][0][1]
+				const maxX =
+					fingerPointList[identifier][
+						fingerPointList[identifier].length - 1
+					][0]
+				const maxY =
+					fingerPointList[identifier][
+						fingerPointList[identifier].length - 1
+					][1]
+				const distanceX = maxX - minX
+				const distanceY = maxY - minY
+				const newPoints = points.map(item => {
+					const newX = item[0] + distanceX
+					const newY = item[1] + distanceY
+					return [newX, newY]
+				})
+				// 绘制
+				const plugin = allPlugins.find(item => item.action === action)
+				ctxList[identifier].clearRect(0, 0, width, height)
+				ctxList[identifier].save()
+				plugin.draw(ctxList[identifier], newPoints, style)
+				ctxList[identifier].restore()
 			}
 		}
 	}
