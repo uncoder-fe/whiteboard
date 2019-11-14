@@ -71,9 +71,10 @@ function Whiteboard(props) {
 	const allPlugins = [...defaultPlugin, ...plugins]
 	// 检测是否命中精灵
 	const hitSprite = (historyList, ignoreList, x, y) => {
+		const newList = [...historyList.reverse()]
 		let copySprite = null
-		for (let i = 0; i < historyList.length; i++) {
-			const { id, leftTop, rightBottom } = historyList[i]
+		for (let i = 0; i < newList.length; i++) {
+			const { id, leftTop, rightBottom } = newList[i]
 			if (ignoreList.find(item => item && item.id === id)) continue
 			if (
 				leftTop[0] < x &&
@@ -81,7 +82,7 @@ function Whiteboard(props) {
 				leftTop[1] < y &&
 				y < rightBottom[1]
 			) {
-				copySprite = Object.assign({}, historyList[i])
+				copySprite = Object.assign({}, newList[i])
 				break
 			}
 		}
@@ -313,7 +314,7 @@ function Whiteboard(props) {
 			delete fingerPointList[identifier]
 			// 清空当前手指对应canvas的内容
 			ctxList[identifier].clearRect(0, 0, width, height)
-			console.log('moveList', moveList)
+			// console.log('moveList', moveList)
 		}
 	}
 	const handleMousedown = event => {
