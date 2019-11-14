@@ -256,8 +256,8 @@ function Whiteboard(props) {
 						...currentAction.style,
 					},
 					eraserList: [],
-					leftTop: [minX, minY],
-					rightBottom: [maxX, maxY],
+					leftTop: [Math.min(minX, maxX), Math.min(minY, maxY)],
+					rightBottom: [Math.max(minX, maxX), Math.max(minY, maxY)],
 				})
 			} else if (currentAction.action === 'move') {
 				const { id, points } = moveList[0]
