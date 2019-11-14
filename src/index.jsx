@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import * as d3 from 'd3-shape'
 import './index.less'
+import { uptime } from 'os'
 
 // 默认插件
 const defaultPlugin = [
@@ -110,19 +111,17 @@ function Whiteboard(props) {
 	})
 	// 鼠标事件
 	const isMouse = useRef(false)
-	const handleMousedown = event => {
-		event.preventDefault()
-		if (currentAction.action === 'hand') return
-		isMouse.current = true
-		const { offsetX, offsetY } = event.nativeEvent
+	const down = (identifier, x, y) => {
 		const {
 			fingerPointList,
 			ctxList,
 			moveList,
 			historyList,
 		} = store.current
+		const exitCanvas = canvasList.current.querySelector(
+			`.canvas-${identifier}`,
+		)
 		// 检测这根手指是否存在canvas
-		const exitCanvas = canvasList.current.querySelector('.canvas-0')
 		if (!exitCanvas) {
 			const canvas = document.createElement('canvas')
 			canvas.setAttribute('class', `canvas-0`)
@@ -133,58 +132,63 @@ function Whiteboard(props) {
 				`height:${height / 2}px;width:${width / 2}px`,
 			)
 			canvasList.current.appendChild(canvas)
-			ctxList[0] = canvas.getContext('2d')
+			ctxList[identifier] = canvas.getContext('2d')
 		}
-		if (!fingerPointList[0]) {
-			fingerPointList[0] = [[offsetX * 2, offsetY * 2]]
+		if (!fingerPointList[identifier]) {
+			fingerPointList[identifier] = [[x, y]]
 		}
 		if (currentAction.action === 'move') {
 			// 找出那个元素
-			const exit = hitSprite(historyList, offsetX * 2, offsetY * 2)
+			const exit = hitSprite(historyList, x, y)
 			if (exit) {
-				moveList[0] = exit
+				moveList[identifier] = exit
 				const { id, action, points, style } = exit
 				// 绘制背景
 				reDraw(historyList, id)
 				// 绘制
 				const plugin = allPlugins.find(item => item.action === action)
-				ctxList[0].clearRect(0, 0, width, height)
-				ctxList[0].save()
-				plugin.draw(ctxList[0], points, style)
-				ctxList[0].restore()
+				ctxList[identifier].clearRect(0, 0, width, height)
+				ctxList[identifier].save()
+				plugin.draw(ctxList[identifier], points, style)
+				ctxList[identifier].restore()
 			}
 		}
 	}
-	const handleMousemove = event => {
-		event.preventDefault()
-		if (!isMouse.current) return
-		const { offsetX, offsetY } = event.nativeEvent
+	const move = (identifier, x, y) => {
 		const { fingerPointList, ctxList, moveList } = store.current
-		fingerPointList[0].push([offsetX * 2, offsetY * 2])
+		fingerPointList[identifier].push([x, y])
 		// 卧槽，卧槽，没有beginpath，clearRect之后，再画，旧痕迹还在
-		if (fingerPointList[0].length > 2) {
+		if (fingerPointList[identifier].length > 2) {
 			if (
 				currentAction.action !== 'hand' &&
 				currentAction.action !== 'move' &&
 				currentAction.action !== 'eraser'
 			) {
-				ctxList[0].clearRect(0, 0, width, height)
-				ctxList[0].save()
-				currentAction.draw(ctxList[0], fingerPointList[0], {
-					...defaultStyle,
-					...currentAction.style,
-				})
-				ctxList[0].restore()
+				ctxList[identifier].clearRect(0, 0, width, height)
+				ctxList[identifier].save()
+				currentAction.draw(
+					ctxList[identifier],
+					fingerPointList[identifier],
+					{
+						...defaultStyle,
+						...currentAction.style,
+					},
+				)
+				ctxList[identifier].restore()
 			} else if (currentAction.action === 'move') {
-				if (moveList[0]) {
-					const { action, points, style } = moveList[0]
+				if (moveList[identifier]) {
+					const { action, points, style } = moveList[identifier]
 					// 更新坐标位置
-					const minX = fingerPointList[0][0][0]
-					const minY = fingerPointList[0][0][1]
+					const minX = fingerPointList[identifier][0][0]
+					const minY = fingerPointList[identifier][0][1]
 					const maxX =
-						fingerPointList[0][fingerPointList[0].length - 1][0]
+						fingerPointList[identifier][
+							fingerPointList[identifier].length - 1
+						][0]
 					const maxY =
-						fingerPointList[0][fingerPointList[0].length - 1][1]
+						fingerPointList[identifier][
+							fingerPointList[identifier].length - 1
+						][1]
 					const distanceX = maxX - minX
 					const distanceY = maxY - minY
 					const newPoints = points.map(item => {
@@ -196,25 +200,22 @@ function Whiteboard(props) {
 					const plugin = allPlugins.find(
 						item => item.action === action,
 					)
-					ctxList[0].clearRect(0, 0, width, height)
-					ctxList[0].save()
-					plugin.draw(ctxList[0], newPoints, style)
-					ctxList[0].restore()
+					ctxList[identifier].clearRect(0, 0, width, height)
+					ctxList[identifier].save()
+					plugin.draw(ctxList[identifier], newPoints, style)
+					ctxList[identifier].restore()
 				}
 			}
 		}
 	}
-	const handleMouseup = event => {
-		event.preventDefault()
-		if (!isMouse.current) return
-		isMouse.current = false
+	const up = identifier => {
 		const {
 			fingerPointList,
 			ctxList,
 			historyList,
 			moveList,
 		} = store.current
-		if (fingerPointList[0].length > 2) {
+		if (fingerPointList[identifier].length > 2) {
 			// 获取上下文
 			const innerCtx = innerCanvas.current.getContext('2d')
 			if (
@@ -223,7 +224,7 @@ function Whiteboard(props) {
 				currentAction.action !== 'eraser'
 			) {
 				innerCtx.save()
-				currentAction.draw(innerCtx, fingerPointList[0], {
+				currentAction.draw(innerCtx, fingerPointList[identifier], {
 					...defaultStyle,
 					...currentAction.style,
 				})
@@ -235,22 +236,32 @@ function Whiteboard(props) {
 				// 计算矩形大小
 				let minX, minY, maxX, maxY
 				if (currentAction.action === 'pencil') {
-					const ax = [...fingerPointList[0].map(item => item[0])]
-					const ay = [...fingerPointList[0].map(item => item[1])]
+					const ax = [
+						...fingerPointList[identifier].map(item => item[0]),
+					]
+					const ay = [
+						...fingerPointList[identifier].map(item => item[1]),
+					]
 					minX = Math.min(...ax)
 					minY = Math.min(...ay)
 					maxX = Math.max(...ax)
 					maxY = Math.max(...ay)
 				} else {
-					minX = fingerPointList[0][0][0]
-					minY = fingerPointList[0][0][1]
-					maxX = fingerPointList[0][fingerPointList[0].length - 1][0]
-					maxY = fingerPointList[0][fingerPointList[0].length - 1][1]
+					minX = fingerPointList[identifier][0][0]
+					minY = fingerPointList[identifier][0][1]
+					maxX =
+						fingerPointList[identifier][
+							fingerPointList[identifier].length - 1
+						][0]
+					maxY =
+						fingerPointList[identifier][
+							fingerPointList[identifier].length - 1
+						][1]
 				}
 				historyList.push({
 					id: handleKey,
 					action: currentAction.action,
-					points: fingerPointList[0],
+					points: fingerPointList[identifier],
 					style: {
 						...defaultStyle,
 						...currentAction.style,
@@ -260,14 +271,18 @@ function Whiteboard(props) {
 					rightBottom: [Math.max(minX, maxX), Math.max(minY, maxY)],
 				})
 			} else if (currentAction.action === 'move') {
-				const { id, points } = moveList[0]
+				const { id, points } = moveList[identifier]
 				// 更新坐标位置
-				const minX = fingerPointList[0][0][0]
-				const minY = fingerPointList[0][0][1]
+				const minX = fingerPointList[identifier][0][0]
+				const minY = fingerPointList[identifier][0][1]
 				const maxX =
-					fingerPointList[0][fingerPointList[0].length - 1][0]
+					fingerPointList[identifier][
+						fingerPointList[identifier].length - 1
+					][0]
 				const maxY =
-					fingerPointList[0][fingerPointList[0].length - 1][1]
+					fingerPointList[identifier][
+						fingerPointList[identifier].length - 1
+					][1]
 				const distanceX = maxX - minX
 				const distanceY = maxY - minY
 				const newPoints = points.map(item => {
@@ -290,10 +305,29 @@ function Whiteboard(props) {
 				reDraw(historyList)
 			}
 			// 清空当前手指
-			delete fingerPointList[0]
+			delete fingerPointList[identifier]
 			// 清空当前手指对应canvas的内容
-			ctxList[0].clearRect(0, 0, width, height)
+			ctxList[identifier].clearRect(0, 0, width, height)
 		}
+	}
+	const handleMousedown = event => {
+		event.preventDefault()
+		if (currentAction.action === 'hand') return
+		isMouse.current = true
+		const { offsetX, offsetY } = event.nativeEvent
+		down(0, offsetX * 2, offsetY * 2)
+	}
+	const handleMousemove = event => {
+		event.preventDefault()
+		if (!isMouse.current) return
+		const { offsetX, offsetY } = event.nativeEvent
+		move(0, offsetX * 2, offsetY * 2)
+	}
+	const handleMouseup = event => {
+		event.preventDefault()
+		if (!isMouse.current) return
+		isMouse.current = false
+		up(0)
 	}
 	// 触摸屏事件
 	const handleTouchstart = event => {
@@ -302,80 +336,32 @@ function Whiteboard(props) {
 			return
 		}
 		const { top, left } = outerCanvas.current.getBoundingClientRect()
-		const { fingerPointList, ctxList } = store.current
 		const { clientX, clientY, identifier } = event.changedTouches[0]
-		// 检测这根手指是否存在canvas
-		const exitCanvas = canvasList.current.querySelector(
-			`.canvas-${identifier}`,
+		down(
+			identifier,
+			((clientX - left) / scale) * 2,
+			((clientY - top) / scale) * 2,
 		)
-		if (!exitCanvas) {
-			const canvas = document.createElement('canvas')
-			canvas.setAttribute('class', `canvas-${identifier}`)
-			canvas.setAttribute('height', height)
-			canvas.setAttribute('width', width)
-			canvas.setAttribute('style', `height:${height}px;width:${width}px`)
-			canvasList.current.appendChild(canvas)
-			ctxList[identifier] = canvas.getContext('2d')
-		}
-		if (!fingerPointList[identifier]) {
-			fingerPointList[identifier] = [
-				[((clientX - left) / scale) * 2, ((clientY - top) / scale) * 2],
-			]
-		}
 		// console.error('event,start', fingerPointList, ctxList)
 	}
 	const handleTouchmove = event => {
 		event.preventDefault()
 		const { top, left } = outerCanvas.current.getBoundingClientRect()
-		const { fingerPointList, ctxList } = store.current
 		const { changedTouches } = event
 		for (let i = 0; i < changedTouches.length; i++) {
 			const { clientX, clientY, identifier } = changedTouches[i]
-			fingerPointList[identifier].push([
+			move(
+				identifier,
 				((clientX - left) / scale) * 2,
 				((clientY - top) / scale) * 2,
-			])
-			// 卧槽，卧槽，没有beginpath，clearRect之后，在画，旧痕迹还在
-			if (
-				fingerPointList[identifier].length > 2 &&
-				currentAction.action !== 'hand'
-			) {
-				ctxList[identifier].clearRect(0, 0, width, height)
-				ctx.save()
-				currentAction.draw(
-					ctxList[identifier],
-					fingerPointList[identifier],
-					currentAction.style,
-				)
-				ctxList[identifier].stroke()
-				ctx.restore()
-			}
+			)
 		}
 		// console.error('event,move', event.changedTouches)
 	}
 	const handleTouchend = event => {
 		event.preventDefault()
-		const { fingerPointList, ctxList } = store.current
 		const { identifier } = event.changedTouches[0]
-		if (fingerPointList[identifier].length > 0) {
-			// 获取上下文
-			const innerCtx = innerCanvas.current.getContext('2d')
-			if (currentAction.action !== 'hand') {
-				innerCtx.beginPath()
-				if (currentAction.style) {
-					for (let s in currentAction.style) {
-						innerCtx[s] = currentAction.style[s]
-					}
-				}
-				currentAction.draw(innerCtx, fingerPointList[identifier])
-				// innerCtx.closePath()
-				innerCtx.stroke()
-			}
-			// 清空当前手指
-			delete fingerPointList[identifier]
-			// 清空当前手指对应canvas的内容
-			ctxList[identifier].clearRect(0, 0, width, height)
-		}
+		up(identifier)
 		// console.log('event,end', event.changedTouches)
 	}
 	// 设置动作
