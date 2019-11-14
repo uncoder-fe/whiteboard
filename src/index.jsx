@@ -50,14 +50,9 @@ const es = {
 	lineWidth: 16,
 }
 function Whiteboard(props) {
-	const {
-		action = 'pencil',
-		height,
-		width,
-		scale = 1,
-		plugins = [],
-		resetStyle,
-	} = props
+	const { action = 'pencil', scale = 1, plugins = [], resetStyle } = props
+	const width = props.width * 2
+	const height = props.height * 2
 	// 声明使用的dom
 	const outerCanvas = useRef(null)
 	const innerCanvas = useRef(null)
@@ -94,7 +89,7 @@ function Whiteboard(props) {
 	// 恢复现场
 	const reDraw = (historyList, ignoreId) => {
 		const innerCtx = innerCanvas.current.getContext('2d')
-		innerCtx.clearRect(0, 0, width * 2, height * 2)
+		innerCtx.clearRect(0, 0, width, height)
 		for (let i = 0; i < historyList.length; i++) {
 			const { id, action, points, style } = historyList[i]
 			if (ignoreId === id) continue
@@ -131,9 +126,12 @@ function Whiteboard(props) {
 		if (!exitCanvas) {
 			const canvas = document.createElement('canvas')
 			canvas.setAttribute('class', `canvas-0`)
-			canvas.setAttribute('height', height * 2)
-			canvas.setAttribute('width', width * 2)
-			canvas.setAttribute('style', `height:${height}px;width:${width}px`)
+			canvas.setAttribute('height', height)
+			canvas.setAttribute('width', width)
+			canvas.setAttribute(
+				'style',
+				`height:${height / 2}px;width:${width / 2}px`,
+			)
 			canvasList.current.appendChild(canvas)
 			ctxList[0] = canvas.getContext('2d')
 		}
@@ -150,7 +148,7 @@ function Whiteboard(props) {
 				reDraw(historyList, id)
 				// 绘制
 				const plugin = allPlugins.find(item => item.action === action)
-				ctxList[0].clearRect(0, 0, width * 2, height * 2)
+				ctxList[0].clearRect(0, 0, width, height)
 				ctxList[0].save()
 				plugin.draw(ctxList[0], points, style)
 				ctxList[0].restore()
@@ -170,7 +168,7 @@ function Whiteboard(props) {
 				currentAction.action !== 'move' &&
 				currentAction.action !== 'eraser'
 			) {
-				ctxList[0].clearRect(0, 0, width * 2, height * 2)
+				ctxList[0].clearRect(0, 0, width, height)
 				ctxList[0].save()
 				currentAction.draw(ctxList[0], fingerPointList[0], {
 					...defaultStyle,
@@ -198,7 +196,7 @@ function Whiteboard(props) {
 					const plugin = allPlugins.find(
 						item => item.action === action,
 					)
-					ctxList[0].clearRect(0, 0, width * 2, height * 2)
+					ctxList[0].clearRect(0, 0, width, height)
 					ctxList[0].save()
 					plugin.draw(ctxList[0], newPoints, style)
 					ctxList[0].restore()
@@ -294,7 +292,7 @@ function Whiteboard(props) {
 			// 清空当前手指
 			delete fingerPointList[0]
 			// 清空当前手指对应canvas的内容
-			ctxList[0].clearRect(0, 0, width * 2, height * 2)
+			ctxList[0].clearRect(0, 0, width, height)
 		}
 	}
 	// 触摸屏事件
@@ -313,8 +311,8 @@ function Whiteboard(props) {
 		if (!exitCanvas) {
 			const canvas = document.createElement('canvas')
 			canvas.setAttribute('class', `canvas-${identifier}`)
-			canvas.setAttribute('height', height * 2)
-			canvas.setAttribute('width', width * 2)
+			canvas.setAttribute('height', height)
+			canvas.setAttribute('width', width)
 			canvas.setAttribute('style', `height:${height}px;width:${width}px`)
 			canvasList.current.appendChild(canvas)
 			ctxList[identifier] = canvas.getContext('2d')
@@ -342,7 +340,7 @@ function Whiteboard(props) {
 				fingerPointList[identifier].length > 2 &&
 				currentAction.action !== 'hand'
 			) {
-				ctxList[identifier].clearRect(0, 0, width * 2, height * 2)
+				ctxList[identifier].clearRect(0, 0, width, height)
 				ctx.save()
 				currentAction.draw(
 					ctxList[identifier],
@@ -376,7 +374,7 @@ function Whiteboard(props) {
 			// 清空当前手指
 			delete fingerPointList[identifier]
 			// 清空当前手指对应canvas的内容
-			ctxList[identifier].clearRect(0, 0, width * 2, height * 2)
+			ctxList[identifier].clearRect(0, 0, width, height)
 		}
 		// console.log('event,end', event.changedTouches)
 	}
@@ -386,21 +384,24 @@ function Whiteboard(props) {
 		setCurrentAction(plugin)
 	}, [action])
 	return (
-		<div className="whiteboard" style={{ height, width }}>
+		<div
+			className="whiteboard"
+			style={{ height: height / 2, width: width / 2 }}
+		>
 			<canvas
 				className="inner-canvas"
 				ref={innerCanvas}
-				height={height * 2}
-				width={width * 2}
-				style={{ height, width }}
+				height={height}
+				width={width}
+				style={{ height: height / 2, width: width / 2 }}
 			/>
 			<div className="canvas-list" ref={canvasList} />
 			<canvas
 				className="outer-canvas"
 				ref={outerCanvas}
-				height={height * 2}
-				width={width * 2}
-				style={{ height, width }}
+				height={height}
+				width={width}
+				style={{ height: height / 2, width: width / 2 }}
 				onMouseDown={handleMousedown}
 				onMouseMove={handleMousemove}
 				onMouseUp={handleMouseup}
