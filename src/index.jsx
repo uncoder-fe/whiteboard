@@ -139,11 +139,11 @@ function Whiteboard(props) {
 			fingerPointList[identifier] = [[x, y]]
 		}
 		if (currentAction.action === 'move') {
-			// 找出那个元素
-			const exit = hitSprite(historyList, moveList, x, y)
-			if (exit) {
-				moveList[identifier] = exit
-				const { action, points, style } = exit
+			// 找出那个精灵
+			const sprite = hitSprite(historyList, moveList, x, y)
+			if (sprite) {
+				moveList[identifier] = sprite
+				const { action, points, style } = sprite
 				// 绘制背景
 				reDraw(historyList, moveList)
 				// 绘制
@@ -216,106 +216,100 @@ function Whiteboard(props) {
 			historyList,
 			moveList,
 		} = store.current
-		if (fingerPointList[identifier].length > 2) {
-			// 获取上下文
-			const innerCtx = innerCanvas.current.getContext('2d')
-			if (
-				currentAction.action !== 'hand' &&
-				currentAction.action !== 'move' &&
-				currentAction.action !== 'eraser'
-			) {
-				innerCtx.save()
-				currentAction.draw(innerCtx, fingerPointList[identifier], {
-					...defaultStyle,
-					...currentAction.style,
-				})
-				innerCtx.restore()
-				// 唯一key
-				const handleKey = Math.random()
-					.toString(36)
-					.slice(2)
-				// 计算矩形大小
-				let minX, minY, maxX, maxY
-				if (currentAction.action === 'pencil') {
-					const ax = [
-						...fingerPointList[identifier].map(item => item[0]),
-					]
-					const ay = [
-						...fingerPointList[identifier].map(item => item[1]),
-					]
-					minX = Math.min(...ax)
-					minY = Math.min(...ay)
-					maxX = Math.max(...ax)
-					maxY = Math.max(...ay)
-				} else {
-					minX = fingerPointList[identifier][0][0]
-					minY = fingerPointList[identifier][0][1]
-					maxX =
-						fingerPointList[identifier][
-							fingerPointList[identifier].length - 1
-						][0]
-					maxY =
-						fingerPointList[identifier][
-							fingerPointList[identifier].length - 1
-						][1]
-				}
-				historyList.push({
-					id: handleKey,
-					action: currentAction.action,
-					points: fingerPointList[identifier],
-					style: {
-						...defaultStyle,
-						...currentAction.style,
-					},
-					eraserList: [],
-					leftTop: [Math.min(minX, maxX), Math.min(minY, maxY)],
-					rightBottom: [Math.max(minX, maxX), Math.max(minY, maxY)],
-				})
-			} else if (
-				currentAction.action === 'move' &&
-				moveList[identifier]
-			) {
-				const { id, points } = moveList[identifier]
-				// 更新坐标位置
-				const minX = fingerPointList[identifier][0][0]
-				const minY = fingerPointList[identifier][0][1]
-				const maxX =
+		// 获取上下文
+		const innerCtx = innerCanvas.current.getContext('2d')
+		if (
+			currentAction.action !== 'hand' &&
+			currentAction.action !== 'move' &&
+			currentAction.action !== 'eraser' &&
+			fingerPointList[identifier].length > 2
+		) {
+			innerCtx.save()
+			currentAction.draw(innerCtx, fingerPointList[identifier], {
+				...defaultStyle,
+				...currentAction.style,
+			})
+			innerCtx.restore()
+			// 唯一key
+			const handleKey = Math.random()
+				.toString(36)
+				.slice(2)
+			// 计算矩形大小
+			let minX, minY, maxX, maxY
+			if (currentAction.action === 'pencil') {
+				const ax = [...fingerPointList[identifier].map(item => item[0])]
+				const ay = [...fingerPointList[identifier].map(item => item[1])]
+				minX = Math.min(...ax)
+				minY = Math.min(...ay)
+				maxX = Math.max(...ax)
+				maxY = Math.max(...ay)
+			} else {
+				minX = fingerPointList[identifier][0][0]
+				minY = fingerPointList[identifier][0][1]
+				maxX =
 					fingerPointList[identifier][
 						fingerPointList[identifier].length - 1
 					][0]
-				const maxY =
+				maxY =
 					fingerPointList[identifier][
 						fingerPointList[identifier].length - 1
 					][1]
-				const distanceX = maxX - minX
-				const distanceY = maxY - minY
-				const newPoints = points.map(item => {
-					const newX = item[0] + distanceX
-					const newY = item[1] + distanceY
-					return [newX, newY]
-				})
-				// 更新数据
-				const updateSprite = historyList.find(item => item.id == id)
-				updateSprite.leftTop = [
-					updateSprite.leftTop[0] + distanceX,
-					updateSprite.leftTop[1] + distanceY,
-				]
-				updateSprite.rightBottom = [
-					updateSprite.rightBottom[0] + distanceX,
-					updateSprite.rightBottom[1] + distanceY,
-				]
-				updateSprite.points = newPoints
-				// 清空移动的手指
-				delete moveList[identifier]
-				// 重绘
-				reDraw(historyList, moveList)
 			}
-			// 清空当前手指
-			delete fingerPointList[identifier]
-			// 清空当前手指对应canvas的内容
-			ctxList[identifier].clearRect(0, 0, width, height)
-			// console.log('moveList', moveList)
+			historyList.push({
+				id: handleKey,
+				action: currentAction.action,
+				points: fingerPointList[identifier],
+				style: {
+					...defaultStyle,
+					...currentAction.style,
+				},
+				eraserList: [],
+				leftTop: [Math.min(minX, maxX), Math.min(minY, maxY)],
+				rightBottom: [Math.max(minX, maxX), Math.max(minY, maxY)],
+			})
+		} else if (currentAction.action === 'move' && moveList[identifier]) {
+			const { id, points } = moveList[identifier]
+			// 更新坐标位置
+			const minX = fingerPointList[identifier][0][0]
+			const minY = fingerPointList[identifier][0][1]
+			const maxX =
+				fingerPointList[identifier][
+					fingerPointList[identifier].length - 1
+				][0]
+			const maxY =
+				fingerPointList[identifier][
+					fingerPointList[identifier].length - 1
+				][1]
+			const distanceX = maxX - minX
+			const distanceY = maxY - minY
+			const newPoints = points.map(item => {
+				const newX = item[0] + distanceX
+				const newY = item[1] + distanceY
+				return [newX, newY]
+			})
+			// 更新数据
+			const updateSprite = historyList.find(item => item.id == id)
+			updateSprite.leftTop = [
+				updateSprite.leftTop[0] + distanceX,
+				updateSprite.leftTop[1] + distanceY,
+			]
+			updateSprite.rightBottom = [
+				updateSprite.rightBottom[0] + distanceX,
+				updateSprite.rightBottom[1] + distanceY,
+			]
+			updateSprite.points = newPoints
+			// 清空移动的手指
+			delete moveList[identifier]
+			// 重绘
+			reDraw(historyList, moveList)
+		} else if (currentAction.action === 'eraser') {
 		}
+		// 清空当前手指位置数据
+		delete fingerPointList[identifier]
+		// 清空移动的精灵
+		delete moveList[identifier]
+		// 清空当前手指对应canvas的内容
+		ctxList[identifier].clearRect(0, 0, width, height)
 	}
 	const handleMousedown = event => {
 		event.preventDefault()
@@ -344,7 +338,6 @@ function Whiteboard(props) {
 		}
 		const { top, left } = outerCanvas.current.getBoundingClientRect()
 		const { clientX, clientY, identifier } = event.changedTouches[0]
-		console.log('identifier', identifier)
 		down(
 			identifier,
 			((clientX - left) / scale) * 2,
