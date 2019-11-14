@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import * as d3 from 'd3-shape'
 import './index.less'
-import { uptime } from 'os'
 
 // 默认插件
 const defaultPlugin = [
@@ -71,10 +70,11 @@ function Whiteboard(props) {
 	// 绘制动作组合并
 	const allPlugins = [...defaultPlugin, ...plugins]
 	// 检测是否命中精灵
-	const hitSprite = (historyList, x, y) => {
+	const hitSprite = (historyList, ignoreList, x, y) => {
 		let copySprite = null
 		for (let i = 0; i < historyList.length; i++) {
 			const { id, leftTop, rightBottom } = historyList[i]
+			if (ignoreList.find(item => item && item.id === id)) continue
 			if (
 				leftTop[0] < x &&
 				x < rightBottom[0] &&
@@ -88,12 +88,12 @@ function Whiteboard(props) {
 		return copySprite
 	}
 	// 恢复现场
-	const reDraw = (historyList, ignoreId) => {
+	const reDraw = (historyList, ignoreList = []) => {
 		const innerCtx = innerCanvas.current.getContext('2d')
 		innerCtx.clearRect(0, 0, width, height)
 		for (let i = 0; i < historyList.length; i++) {
 			const { id, action, points, style } = historyList[i]
-			if (ignoreId === id) continue
+			if (ignoreList.find(item => item && item.id === id)) continue
 			innerCtx.save()
 			const plugin = allPlugins.find(item => item.action === action)
 			plugin.draw(innerCtx, points, style)
@@ -124,7 +124,7 @@ function Whiteboard(props) {
 		// 检测这根手指是否存在canvas
 		if (!exitCanvas) {
 			const canvas = document.createElement('canvas')
-			canvas.setAttribute('class', `canvas-0`)
+			canvas.setAttribute('class', `canvas-${identifier}`)
 			canvas.setAttribute('height', height)
 			canvas.setAttribute('width', width)
 			canvas.setAttribute(
@@ -139,12 +139,12 @@ function Whiteboard(props) {
 		}
 		if (currentAction.action === 'move') {
 			// 找出那个元素
-			const exit = hitSprite(historyList, x, y)
+			const exit = hitSprite(historyList, moveList, x, y)
 			if (exit) {
 				moveList[identifier] = exit
-				const { id, action, points, style } = exit
+				const { action, points, style } = exit
 				// 绘制背景
-				reDraw(historyList, id)
+				reDraw(historyList, moveList)
 				// 绘制
 				const plugin = allPlugins.find(item => item.action === action)
 				ctxList[identifier].clearRect(0, 0, width, height)
@@ -270,7 +270,10 @@ function Whiteboard(props) {
 					leftTop: [Math.min(minX, maxX), Math.min(minY, maxY)],
 					rightBottom: [Math.max(minX, maxX), Math.max(minY, maxY)],
 				})
-			} else if (currentAction.action === 'move') {
+			} else if (
+				currentAction.action === 'move' &&
+				moveList[identifier]
+			) {
 				const { id, points } = moveList[identifier]
 				// 更新坐标位置
 				const minX = fingerPointList[identifier][0][0]
@@ -301,13 +304,16 @@ function Whiteboard(props) {
 					updateSprite.rightBottom[1] + distanceY,
 				]
 				updateSprite.points = newPoints
+				// 清空移动的手指
+				delete moveList[identifier]
 				// 重绘
-				reDraw(historyList)
+				reDraw(historyList, moveList)
 			}
 			// 清空当前手指
 			delete fingerPointList[identifier]
 			// 清空当前手指对应canvas的内容
 			ctxList[identifier].clearRect(0, 0, width, height)
+			console.log('moveList', moveList)
 		}
 	}
 	const handleMousedown = event => {
@@ -337,6 +343,7 @@ function Whiteboard(props) {
 		}
 		const { top, left } = outerCanvas.current.getBoundingClientRect()
 		const { clientX, clientY, identifier } = event.changedTouches[0]
+		console.log('identifier', identifier)
 		down(
 			identifier,
 			((clientX - left) / scale) * 2,
