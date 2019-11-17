@@ -94,10 +94,8 @@ function Whiteboard(props) {
 		for (let i = 0; i < historyList.length; i++) {
 			const { id, action, points, style } = historyList[i]
 			if (ignoreList.find(item => item && item.id === id)) continue
-			innerCtx.save()
 			const plugin = allPlugins.find(item => item.action === action)
 			plugin.draw(innerCtx, points, style)
-			innerCtx.restore()
 		}
 	}
 	// 当前动作
@@ -151,9 +149,7 @@ function Whiteboard(props) {
 				// 绘制
 				const plugin = allPlugins.find(item => item.action === action)
 				ctxList[identifier].clearRect(0, 0, width, height)
-				ctxList[identifier].save()
 				plugin.draw(ctxList[identifier], points, style)
-				ctxList[identifier].restore()
 			}
 		}
 	}
@@ -204,9 +200,7 @@ function Whiteboard(props) {
 				// 绘制
 				const plugin = allPlugins.find(item => item.action === action)
 				ctxList[identifier].clearRect(0, 0, width, height)
-				ctxList[identifier].save()
 				plugin.draw(ctxList[identifier], newPoints, style)
-				ctxList[identifier].restore()
 			}
 		}
 	}

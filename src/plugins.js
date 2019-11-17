@@ -7,6 +7,7 @@ const plugins = [
 			fillStyle: 'blue',
 		},
 		draw: function(ctx, points, style) {
+			ctx.save()
 			ctx.beginPath()
 			if (style) {
 				for (let s in style) {
@@ -21,6 +22,15 @@ const plugins = [
 			ctx.rect(0, 0, endX - x, endY - y)
 			ctx.stroke()
 			ctx.fill()
+			ctx.restore()
+			// 橡皮
+			ctx.save()
+			ctx.beginPath()
+			ctx.fillStyle = '#fff'
+			ctx.strokeStyle = 'red'
+			ctx.arc(x, y, 100, 0, 2 * Math.PI)
+			ctx.fill()
+			ctx.restore()
 		},
 	},
 	{
@@ -31,6 +41,7 @@ const plugins = [
 			fillStyle: 'blue',
 		},
 		draw: function(ctx, points, style) {
+			ctx.save()
 			ctx.beginPath()
 			if (style) {
 				for (let s in style) {
@@ -45,6 +56,7 @@ const plugins = [
 			ctx.lineTo(endX, endY)
 			ctx.stroke()
 			ctx.fill()
+			ctx.restore()
 		},
 	},
 	{
@@ -55,6 +67,7 @@ const plugins = [
 			fillStyle: 'none',
 		},
 		draw: function(ctx, points, style) {
+			ctx.save()
 			ctx.beginPath()
 			if (style) {
 				for (let s in style) {
@@ -71,6 +84,7 @@ const plugins = [
 			ctx.arc(center[0], center[1], radius, 0, 2 * Math.PI)
 			ctx.stroke()
 			ctx.fill()
+			ctx.restore()
 		},
 	},
 ]
