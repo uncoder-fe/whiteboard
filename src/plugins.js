@@ -23,6 +23,14 @@ const plugins = [
 			ctx.stroke()
 			ctx.fill()
 			ctx.restore()
+
+			// 辅助线
+			ctx.save()
+			ctx.beginPath()
+			ctx.strokeStyle = 'black'
+			ctx.rect(x - 20, y - 20, endX - x + 20 * 2, endY - y + 20 * 2)
+			ctx.stroke()
+			ctx.restore()
 		},
 	},
 	{
@@ -49,6 +57,14 @@ const plugins = [
 			ctx.stroke()
 			ctx.fill()
 			ctx.restore()
+
+			// 辅助线
+			ctx.save()
+			ctx.beginPath()
+			ctx.strokeStyle = 'black'
+			ctx.rect(x - 20, y - 20, endX - x + 20 * 2, endY - y + 20 * 2)
+			ctx.stroke()
+			ctx.restore()
 		},
 	},
 	{
@@ -71,11 +87,20 @@ const plugins = [
 			const endX = points[len - 1][0]
 			const endY = points[len - 1][1]
 			const center = [x + (endX - x) / 2, y + (endY - y) / 2]
-			const radius =
-				Math.sqrt((endX - x) * (endX - x) + (endY - y) * (endY - y)) / 4
+			const radiusX = (endX - x) / 2
+			const radiusY = (endY - y) / 2
+			const radius = Math.min(radiusX, radiusY)
 			ctx.arc(center[0], center[1], radius, 0, 2 * Math.PI)
 			ctx.stroke()
 			ctx.fill()
+			ctx.restore()
+
+			// 辅助线
+			ctx.save()
+			ctx.beginPath()
+			ctx.strokeStyle = 'black'
+			ctx.rect(x - 20, y - 20, endX - x + 20 * 2, endY - y + 20 * 2)
+			ctx.stroke()
 			ctx.restore()
 		},
 	},

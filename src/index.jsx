@@ -2,6 +2,9 @@ import React, { useState, useRef, useEffect } from 'react'
 import * as d3 from 'd3-shape'
 import './index.less'
 
+// 扩散范围
+const largeScale = 20
+
 // 默认插件
 const defaultPlugin = [
 	{
@@ -375,10 +378,10 @@ function Whiteboard(props) {
 				for (let i = 0; i < fingerPointList[identifier].length; i++) {
 					const [x, y] = fingerPointList[identifier][i]
 					if (
-						leftTop[0] <= x &&
-						x <= rightBottom[0] &&
-						leftTop[1] <= y &&
-						y <= rightBottom[1]
+						leftTop[0] <= x + largeScale &&
+						x <= rightBottom[0] + largeScale &&
+						leftTop[1] <= y + largeScale &&
+						y <= rightBottom[1] + largeScale
 					) {
 						newEraser.push([x, y])
 					}
