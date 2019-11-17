@@ -12,6 +12,7 @@ const App = () => {
 			<button onClick={() => setAction('circle')}>圆</button>
 			<button onClick={() => setAction('line')}>直线</button>
 			<button onClick={() => setAction('move')}>移动</button>
+			<button onClick={() => setAction('eraser')}>橡皮擦</button>
 			<Blackboard
 				action={action}
 				height={900}

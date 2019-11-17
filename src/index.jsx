@@ -12,6 +12,26 @@ const defaultPlugin = [
 	},
 	{
 		action: 'eraser',
+		style: {
+			strokeStyle: '#fff',
+			fillStyle: '#fff',
+			lineWidth: 10,
+		},
+		draw: function(ctx, points, style) {
+			ctx.save()
+			ctx.beginPath()
+			if (style) {
+				for (let s in style) {
+					ctx[s] = style[s]
+				}
+			}
+			const line = d3.line()
+			line.curve(d3.curveBasis)
+			line.context(ctx)(points)
+			ctx.stroke()
+			// ctx.fill()
+			ctx.restore()
+		},
 	},
 	{
 		action: 'pencil',
@@ -48,6 +68,8 @@ const ds = {
 // 默认橡皮擦样式
 const es = {
 	lineWidth: 16,
+	strokeStyle: '#fff',
+	fillStyle: '#fff',
 }
 function Whiteboard(props) {
 	const { action = 'pencil', scale = 1, plugins = [], resetStyle } = props
@@ -58,9 +80,9 @@ function Whiteboard(props) {
 	const innerCanvas = useRef(null)
 	const canvasList = useRef(null)
 	// 默认绘制样式重制
-	let defaultStyle = { ...ds }
+	let drawStyle = { ...ds }
 	if (resetStyle && resetStyle.drawStyle) {
-		defaultStyle = { ...ds, ...resetStyle.drawStyle }
+		drawStyle = { ...ds, ...resetStyle.drawStyle }
 	}
 	// 默认橡皮擦样式重制
 	let eraserStyle = { ...es }
@@ -92,10 +114,23 @@ function Whiteboard(props) {
 		const innerCtx = innerCanvas.current.getContext('2d')
 		innerCtx.clearRect(0, 0, width, height)
 		for (let i = 0; i < historyList.length; i++) {
-			const { id, action, points, style } = historyList[i]
+			const { id, action, points, style, eraserList } = historyList[i]
 			if (ignoreList.find(item => item && item.id === id)) continue
 			const plugin = allPlugins.find(item => item.action === action)
 			plugin.draw(innerCtx, points, style)
+			// 橡皮擦
+			if (eraserList.length > 0) {
+				const eraserPlugin = allPlugins.find(
+					item => item.action === 'pencil',
+				)
+				for (let j = 0; j < eraserList.length; j++) {
+					eraserPlugin.draw(
+						innerCtx,
+						eraserList[j].points,
+						eraserList[j].style,
+					)
+				}
+			}
 		}
 	}
 	// 当前动作
@@ -160,25 +195,23 @@ function Whiteboard(props) {
 		if (fingerPointList[identifier].length > 2) {
 			if (
 				currentAction.action !== 'hand' &&
-				currentAction.action !== 'move' &&
-				currentAction.action !== 'eraser'
+				currentAction.action !== 'move'
 			) {
 				ctxList[identifier].clearRect(0, 0, width, height)
 				ctxList[identifier].save()
 				currentAction.draw(
 					ctxList[identifier],
 					fingerPointList[identifier],
-					{
-						...defaultStyle,
-						...currentAction.style,
-					},
+					currentAction.action !== 'eraser'
+						? { ...drawStyle, ...currentAction.style }
+						: eraserStyle,
 				)
 				ctxList[identifier].restore()
-			} else if (
-				currentAction.action === 'move' &&
-				moveList[identifier]
-			) {
-				const { action, points, style } = moveList[identifier]
+			}
+			if (currentAction.action === 'move' && moveList[identifier]) {
+				const { action, points, style, eraserList } = moveList[
+					identifier
+				]
 				// 更新坐标位置
 				const minX = fingerPointList[identifier][0][0]
 				const minY = fingerPointList[identifier][0][1]
@@ -201,6 +234,30 @@ function Whiteboard(props) {
 				const plugin = allPlugins.find(item => item.action === action)
 				ctxList[identifier].clearRect(0, 0, width, height)
 				plugin.draw(ctxList[identifier], newPoints, style)
+				// 更新eraserList
+				if (eraserList.length > 0) {
+					const copyEraserList = JSON.parse(
+						JSON.stringify(eraserList),
+					)
+					const eraserPlugin = allPlugins.find(
+						item => item.action === 'pencil',
+					)
+					for (let i = 0; i < copyEraserList.length; i++) {
+						for (
+							let j = 0;
+							j < copyEraserList[i].points.length;
+							j++
+						) {
+							copyEraserList[i].points[j][0] += distanceX
+							copyEraserList[i].points[j][1] += distanceY
+						}
+						eraserPlugin.draw(
+							ctxList[identifier],
+							copyEraserList[i].points,
+							copyEraserList[i].style,
+						)
+					}
+				}
 			}
 		}
 	}
@@ -221,7 +278,7 @@ function Whiteboard(props) {
 		) {
 			innerCtx.save()
 			currentAction.draw(innerCtx, fingerPointList[identifier], {
-				...defaultStyle,
+				...drawStyle,
 				...currentAction.style,
 			})
 			innerCtx.restore()
@@ -255,14 +312,15 @@ function Whiteboard(props) {
 				action: currentAction.action,
 				points: fingerPointList[identifier],
 				style: {
-					...defaultStyle,
+					...drawStyle,
 					...currentAction.style,
 				},
 				eraserList: [],
 				leftTop: [Math.min(minX, maxX), Math.min(minY, maxY)],
 				rightBottom: [Math.max(minX, maxX), Math.max(minY, maxY)],
 			})
-		} else if (currentAction.action === 'move' && moveList[identifier]) {
+		}
+		if (currentAction.action === 'move' && moveList[identifier]) {
 			const { id, points } = moveList[identifier]
 			// 更新坐标位置
 			const minX = fingerPointList[identifier][0][0]
@@ -293,11 +351,46 @@ function Whiteboard(props) {
 				updateSprite.rightBottom[1] + distanceY,
 			]
 			updateSprite.points = newPoints
+			// 更新eraserList
+			for (let i = 0; i < updateSprite.eraserList.length; i++) {
+				for (
+					let j = 0;
+					j < updateSprite.eraserList[i].points.length;
+					j++
+				) {
+					updateSprite.eraserList[i].points[j][0] += distanceX
+					updateSprite.eraserList[i].points[j][1] += distanceY
+				}
+			}
 			// 清空移动的手指
 			delete moveList[identifier]
 			// 重绘
 			reDraw(historyList, moveList)
-		} else if (currentAction.action === 'eraser') {
+		}
+		if (currentAction.action === 'eraser') {
+			// 合并到精灵上
+			historyList.forEach(item => {
+				const { leftTop, rightBottom } = item
+				const newEraser = []
+				for (let i = 0; i < fingerPointList[identifier].length; i++) {
+					const [x, y] = fingerPointList[identifier][i]
+					if (
+						leftTop[0] <= x &&
+						x <= rightBottom[0] &&
+						leftTop[1] <= y &&
+						y <= rightBottom[1]
+					) {
+						newEraser.push([x, y])
+					}
+				}
+				if (newEraser.length > 0) {
+					item.eraserList.push({
+						points: newEraser,
+						style: eraserStyle,
+					})
+				}
+			})
+			reDraw(historyList)
 		}
 		// 清空当前手指位置数据
 		delete fingerPointList[identifier]

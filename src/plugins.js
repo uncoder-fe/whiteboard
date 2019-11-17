@@ -23,14 +23,6 @@ const plugins = [
 			ctx.stroke()
 			ctx.fill()
 			ctx.restore()
-			// 橡皮
-			ctx.save()
-			ctx.beginPath()
-			ctx.fillStyle = '#fff'
-			ctx.strokeStyle = 'red'
-			ctx.arc(x, y, 100, 0, 2 * Math.PI)
-			ctx.fill()
-			ctx.restore()
 		},
 	},
 	{
