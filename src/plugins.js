@@ -89,7 +89,7 @@ const plugins = [
 			const center = [x + (endX - x) / 2, y + (endY - y) / 2]
 			const radiusX = (endX - x) / 2
 			const radiusY = (endY - y) / 2
-			const radius = Math.min(radiusX, radiusY)
+			const radius = Math.max(Math.min(radiusX, radiusY), 10)
 			ctx.arc(center[0], center[1], radius, 0, 2 * Math.PI)
 			ctx.stroke()
 			ctx.fill()
