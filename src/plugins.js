@@ -4,7 +4,7 @@ const plugins = [
 		style: {
 			strokeStyle: 'red',
 			lineWidth: 10,
-			fillStyle: 'blue',
+			fillStyle: '#F4606C',
 		},
 		draw: function(ctx, points, style) {
 			ctx.save()
@@ -15,11 +15,13 @@ const plugins = [
 				}
 			}
 			const len = points.length
-			const [x, y] = points[0]
-			const endX = points[len - 1][0]
-			const endY = points[len - 1][1]
-			ctx.translate(x, y)
-			ctx.rect(0, 0, endX - x, endY - y)
+			const [startX, startY] = points[0]
+			const [endX, endY] = points[len - 1]
+			const x = Math.min(startX, endX)
+			const y = Math.min(startY, endY)
+			const width = Math.abs(endX - startX)
+			const height = Math.abs(endY - startY)
+			ctx.rect(x, y, width, height)
 			ctx.stroke()
 			ctx.fill()
 			ctx.restore()
@@ -28,7 +30,7 @@ const plugins = [
 			ctx.save()
 			ctx.beginPath()
 			ctx.strokeStyle = 'black'
-			ctx.rect(x - 20, y - 20, endX - x + 20 * 2, endY - y + 20 * 2)
+			ctx.rect(x - 20, y - 20, width + 20 * 2, height + 20 * 2)
 			ctx.stroke()
 			ctx.restore()
 		},
@@ -49,10 +51,13 @@ const plugins = [
 				}
 			}
 			const len = points.length
-			const [x, y] = points[0]
-			const endX = points[len - 1][0]
-			const endY = points[len - 1][1]
-			ctx.moveTo(x, y)
+			const [startX, startY] = points[0]
+			const [endX, endY] = points[len - 1]
+			const x = Math.min(startX, endX)
+			const y = Math.min(startY, endY)
+			const width = Math.abs(endX - startX)
+			const height = Math.abs(endY - startY)
+			ctx.moveTo(startX, startY)
 			ctx.lineTo(endX, endY)
 			ctx.stroke()
 			ctx.fill()
@@ -62,7 +67,7 @@ const plugins = [
 			ctx.save()
 			ctx.beginPath()
 			ctx.strokeStyle = 'black'
-			ctx.rect(x - 20, y - 20, endX - x + 20 * 2, endY - y + 20 * 2)
+			ctx.rect(x - 20, y - 20, width + 20 * 2, height + 20 * 2)
 			ctx.stroke()
 			ctx.restore()
 		},
@@ -83,12 +88,18 @@ const plugins = [
 				}
 			}
 			const len = points.length
-			const [x, y] = points[0]
-			const endX = points[len - 1][0]
-			const endY = points[len - 1][1]
-			const center = [x + (endX - x) / 2, y + (endY - y) / 2]
-			const radiusX = (endX - x) / 2
-			const radiusY = (endY - y) / 2
+			const [startX, startY] = points[0]
+			const [endX, endY] = points[len - 1]
+			const x = Math.min(startX, endX)
+			const y = Math.min(startY, endY)
+			const width = Math.abs(endX - startX)
+			const height = Math.abs(endY - startY)
+			const center = [
+				startX + (endX - startX) / 2,
+				startY + (endY - startY) / 2,
+			]
+			const radiusX = Math.abs((endX - startX) / 2)
+			const radiusY = Math.abs((endY - startY) / 2)
 			const radius = Math.max(Math.min(radiusX, radiusY), 10)
 			ctx.arc(center[0], center[1], radius, 0, 2 * Math.PI)
 			ctx.stroke()
@@ -99,7 +110,7 @@ const plugins = [
 			ctx.save()
 			ctx.beginPath()
 			ctx.strokeStyle = 'black'
-			ctx.rect(x - 20, y - 20, endX - x + 20 * 2, endY - y + 20 * 2)
+			ctx.rect(x - 20, y - 20, width + 20 * 2, height + 20 * 2)
 			ctx.stroke()
 			ctx.restore()
 		},
