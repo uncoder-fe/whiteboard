@@ -38,9 +38,8 @@ const plugins = [
 	{
 		action: 'line',
 		style: {
-			strokeStyle: 'red',
+			strokeStyle: '#19CAAD',
 			lineWidth: 20,
-			fillStyle: 'blue',
 		},
 		draw: function(ctx, points, style) {
 			ctx.save()
@@ -77,7 +76,7 @@ const plugins = [
 		style: {
 			strokeStyle: 'red',
 			lineWidth: 2,
-			fillStyle: 'none',
+			fillStyle: '#D1BA74',
 		},
 		draw: function(ctx, points, style) {
 			ctx.save()
